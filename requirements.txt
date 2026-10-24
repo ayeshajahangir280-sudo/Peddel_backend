@@ -18,3 +18,4 @@ qrcode==8.2
 pytest==9.1.1
 pytest-django==4.14.0
 cloudinary==1.46.3
+pypdf==6.21.2

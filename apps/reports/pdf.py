@@ -41,18 +41,20 @@ def _p(text, style=CELL):
 
 
 def _logo(field, width=28 * mm):
-    try:
-        if field:
-            with field.open("rb") as f:  # works for both disk and Cloudinary storage
-                img = Image(io.BytesIO(f.read()))
-            ratio = img.imageHeight / float(img.imageWidth)
-            img.drawWidth, img.drawHeight = width, width * ratio
-            if img.drawHeight > 22 * mm:
-                img.drawHeight, img.drawWidth = 22 * mm, 22 * mm / ratio
-            return img
-    except Exception:
+    """Logo from ANY storage backend (local disk or Cloudinary): read through the storage API, not a filesystem path."""
+    if not field:
         return None
-    return None
+    try:
+        with field.open("rb") as fh:
+            data = fh.read(5 * 1024 * 1024)
+        img = Image(io.BytesIO(data))
+        ratio = img.imageHeight / float(img.imageWidth)
+        img.drawWidth, img.drawHeight = width, width * ratio
+        if img.drawHeight > 22 * mm:
+            img.drawHeight, img.drawWidth = 22 * mm, 22 * mm / ratio
+        return img
+    except Exception:  # a missing/unsupported image must never break a report
+        return None
 
 
 def _table(data, col_widths, header=True, extra=None):
