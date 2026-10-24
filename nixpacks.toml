@@ -1,0 +1,6 @@
+# Dokploy/Nixpacks: start the ASGI server (uvicorn, needed for WebSockets) via the same entrypoint as the Dockerfile.
+[phases.setup]
+nixPkgs = ["python312"]
+
+[start]
+cmd = "sh ./docker-entrypoint.sh web"
