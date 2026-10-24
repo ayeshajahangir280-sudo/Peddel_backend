@@ -18,7 +18,7 @@ case "$1" in
     WORKERS="${WEB_CONCURRENCY:-1}"
     if [ -z "${REDIS_URL}" ]; then WORKERS=1; fi
     echo "[entrypoint] starting uvicorn with ${WORKERS} worker(s)"
-    exec uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --workers "${WORKERS}" \
+    exec uvicorn config.asgi:application --host 0.0.0.0 --port "${PORT:-8000}" --workers "${WORKERS}" \
       --proxy-headers --forwarded-allow-ips="*" --ws-max-size 65536 --limit-concurrency "${MAX_CONNECTIONS:-1000}"
     ;;
   outbox)

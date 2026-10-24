@@ -35,6 +35,11 @@ if TESTING:
 for _h in ("127.0.0.1", "localhost"):  # container health checks / local probes
     if _h not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_h)
+# Railway: allow its generated public domain and its health-check prober.
+if os.environ.get("RAILWAY_ENVIRONMENT_NAME") or os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+    for _h in (os.environ.get("RAILWAY_PUBLIC_DOMAIN", ""), "healthcheck.railway.app"):
+        if _h and _h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_h)
 
 INSTALLED_APPS = [
     "daphne",
