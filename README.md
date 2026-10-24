@@ -32,9 +32,10 @@ daphne -b 127.0.0.1 -p 8000 config.asgi:application    # or: uvicorn config.asgi
 
 ## Environment variables
 
-See [`.env.example`](.env.example). Required in production: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DATABASE_URL`,
-`CORS_ALLOWED_ORIGINS`, `PUBLIC_SITE_URL`. Important optional ones: `REDIS_URL`, `WS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`,
-`MEDIA_ROOT` (mount a persistent volume), `DB_POOL_MAX` (default 20 connections per process), `THROTTLE_LOGIN` (default `10/min`).
+See [`.env.example`](.env.example). Required in production: `DJANGO_SECRET_KEY`, `DATABASE_URL`,
+`FRONTEND_URL`, `CORS_ORIGIN` (comma-separated; also used for WebSocket origins), `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` /
+`CLOUDINARY_API_SECRET` (image uploads; without them files are stored on disk under `MEDIA_ROOT`). Important optional ones: `REDIS_URL`,
+`CLOUDINARY_FOLDER` (default `Peddel`), `DB_POOL_MAX` (default 20 connections per process), `THROTTLE_LOGIN` (default `10/min`).
 
 ## Layout
 

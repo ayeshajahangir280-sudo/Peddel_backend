@@ -2,6 +2,7 @@ import os
 import sys
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -29,7 +30,8 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set")
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1" if (DEBUG or TESTING) else "")
+# Optional: the reverse proxy (Dokploy/Traefik) already routes only our domain here, so accept any host unless restricted.
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "*")
 if TESTING:
     ALLOWED_HOSTS.append("testserver")
 for _h in ("127.0.0.1", "localhost"):  # container health checks / local probes
@@ -140,15 +142,33 @@ STORAGES = {
 }
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+# Uploaded images go to Cloudinary when configured; otherwise they're stored on disk under MEDIA_ROOT.
+CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
+CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY", "")
+CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
+CLOUDINARY_FOLDER = os.environ.get("CLOUDINARY_FOLDER", "Peddel")
+USE_CLOUDINARY = bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET) and not TESTING
+if USE_CLOUDINARY:
+    import cloudinary
+
+    cloudinary.config(cloud_name=CLOUDINARY_CLOUD_NAME, api_key=CLOUDINARY_API_KEY,
+                      api_secret=CLOUDINARY_API_SECRET, secure=True)
+    STORAGES["default"] = {"BACKEND": "config.storage.CloudinaryStorage"}
 DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
 
 # --- Public site / CORS / CSRF -------------------------------------------------
-PUBLIC_SITE_URL = os.environ.get("PUBLIC_SITE_URL", "http://localhost:5173").rstrip("/")
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174")
-CORS_ALLOWED_ORIGIN_REGEXES = env_list("CORS_ALLOWED_ORIGIN_REGEXES")
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
-WS_ALLOWED_ORIGINS = env_list("WS_ALLOWED_ORIGINS") or CORS_ALLOWED_ORIGINS
+# FRONTEND_URL: the public site (used in share links / QR codes).
+# CORS_ORIGIN: comma-separated sites allowed to call the API and open WebSockets (public site + admin).
+PUBLIC_SITE_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+CORS_ALLOWED_ORIGINS = [o.rstrip("/") for o in env_list("CORS_ORIGIN", "http://localhost:5173,http://localhost:5174")]
+if PUBLIC_SITE_URL not in CORS_ALLOWED_ORIGINS:
+    _u = urlsplit(PUBLIC_SITE_URL)
+    CORS_ALLOWED_ORIGINS.append(f"{_u.scheme}://{_u.netloc}")
+WS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
+# The API authenticates with JWT; CSRF only matters for forms served by this backend, so trust its own hosts.
+CSRF_TRUSTED_ORIGINS = [f"https://*{h}" if h.startswith(".") else f"https://{h}"
+                        for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1", "testserver", "*")]
 CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 # --- Security ------------------------------------------------------------------

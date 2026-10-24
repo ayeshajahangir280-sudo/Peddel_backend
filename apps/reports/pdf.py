@@ -1,6 +1,5 @@
 """PDF builders (ReportLab). Always generated from persisted records, never from client state."""
 import io
-from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.conf import settings
@@ -43,8 +42,9 @@ def _p(text, style=CELL):
 
 def _logo(field, width=28 * mm):
     try:
-        if field and Path(field.path).is_file():
-            img = Image(field.path)
+        if field:
+            with field.open("rb") as f:  # works for both disk and Cloudinary storage
+                img = Image(io.BytesIO(f.read()))
             ratio = img.imageHeight / float(img.imageWidth)
             img.drawWidth, img.drawHeight = width, width * ratio
             if img.drawHeight > 22 * mm:
